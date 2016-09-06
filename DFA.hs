@@ -1,5 +1,8 @@
 import Data.List (union)
 
+class Automaton m where
+  evaluate ::  m s -> [s] -> Bool
+
 -- Based on: https://cseweb.ucsd.edu/classes/wi14/cse105-a/haskell/intro.html<Paste>
 data DFA q s = DFA 
   {getStates :: [q]
@@ -11,9 +14,9 @@ data DFA q s = DFA
 -- where q refers to some finite set of states
 -- and s the input alphabet (a finite set of symbols)
 
-evaluate :: (Eq q) => DFA q s -> [s] -> Bool
-evaluate dfa str = foldl f (getInitial dfa) str `elem` getFinal dfa
-  where f  = getTransition dfa
+instance (Eq q) => Automaton (DFA q) where
+  evaluate dfa str = foldl f (getInitial dfa) str `elem` getFinal dfa
+    where f = getTransition dfa
 
 -- Test with a simple automaton to accept the language 0*1*
 states1 = [0, 1, 2]
