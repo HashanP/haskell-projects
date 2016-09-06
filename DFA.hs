@@ -30,18 +30,17 @@ transition1 _ _ = dead1
 
 dfa1 = DFA states1 inputs1 transition1 initial1 final1
 
--- Another automaton to accept the language 00*10
+-- Another automaton to accept the language 00*1
 states2 = [0, 1, 2, 3, 4]
 dead2 = 2
 
 inputs2 = [0, 1]
-final2 = [4]
+final2 = [1]
 initial2 = 0
 transition2 :: Int -> Int -> Int
 transition2 0 0 = 3
 transition2 3 0 = 3
 transition2 3 1 = 1
-transition2 1 0 = 4
 transition2 _ _ = dead2
 
 dfa2 = DFA states2 inputs2 transition2 initial2 final2
@@ -54,6 +53,9 @@ createProductAutomaton a b finals = DFA allStates (getInputs a) transitionF (get
 unionDFA a b = createProductAutomaton a b allFinals
   where allFinals = union [(x,y) | x <- (getFinal a), y <- (getStates b)] [(x,y) | x <- (getStates a), y <- (getFinal b)]
 
+intersectDFA a b = createProductAutomaton a b allFinals
+  where allFinals = [(x,y) | x <- (getFinal a), y <- (getFinal b)] 
+
 main = do
 --  print $ evaluate dfa1 [0,1,1] 
-  print $ evaluate (unionDFA dfa1 dfa2) [0,0,1,0,0] 
+  print $ evaluate (intersectDFA dfa1 dfa2) [1] 
