@@ -26,3 +26,6 @@ add = Recursion (Proj 0 1) (Comp Succ [Proj 2 3])
 
 mul :: Prim
 mul = Recursion (Zero) (Comp add [Proj 0 3, Proj 2 3])
+
+factorial :: Prim
+factorial = Recursion (toPrim 1) (Comp mul [Succ, Proj 1 2])
