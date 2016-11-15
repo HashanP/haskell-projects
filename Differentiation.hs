@@ -3,11 +3,20 @@ Inspired by: http://5outh.blogspot.co.uk/2013/05/symbolic-calculus-in-haskell.ht
 -}
 import Data.List (intersperse)
 
+{-
+The way I store expressions is a bit weird. Originally I had a Const data constructor as part of my
+Sym type. The problem was I didn't like having to filter out and simplify multiple Consts in a single
+summation, for example. Or multiple Consts in a single product. So I made the Sum data constructor.
+The list property of the Sum data constructor stores summands/addends that are symbolic expressions,
+the integer stored the accumulated constant addend. 
+-}
+
 data Sym a
-  = Var Char
-  | Sum [Sym a] Int
-  | Product [Sym a]
-  | Exponentation (Sym a) (Sym a)
+  = Var Char -- Variables
+  | Sum [Sym a] Int -- Additions
+  | Product [Sym a] -- Products
+  | NatLog (Sym a) -- Natural logarithm
+  | Exponentation (Sym a) (Sym a) -- Exponentation
   deriving (Show, Eq)
 
 simplify :: Sym a -> Sym a
@@ -23,9 +32,12 @@ simplify (Sum xs const) = Sum (invalid ++ extractTerms) (const + extractConst)
         extractConst = foldl (+) 0 $ map (\(Sum xs const) -> const) valid
         subCleaned = map simplify xs
 
-simplify (Product [x]) = simplify x
+--simplify (Product [x]) = simplify x
 
-simplify (Product xs) = Product (getNotConst ++ extractTerms ++ memy2)
+simplify (Product xs)
+  | (Sum [] 0) `elem` combined = Sum [] 0
+  | length combined == 1 = head combined
+  | otherwise = Product combined
   where pred (Product _) = True
         pred _ = False
         valid = filter pred subCleaned
@@ -41,6 +53,7 @@ simplify (Product xs) = Product (getNotConst ++ extractTerms ++ memy2)
         memy2
           | memy == 1 = []
           | otherwise = [Sum [] memy]
+        combined = getNotConst ++ extractTerms ++ memy2
 
 simplify (Exponentation x y)
   | y' == (Sum [] 1) = x'
@@ -57,11 +70,15 @@ diff x (Var y)
   | x == y = (Sum [] 1)
   | otherwise = (Sum [] 0)
 
--- Power rule -- Doesn't work yet if you have a funciton of x as the exponent
-diff x (Exponentation base exponent) = Product [(Exponentation base (Sum [exponent] (-1))), exponent]
+-- Exponentation
+diff x entire@(Exponentation base exponent) = Sum [part1, part2] 0
+  where part1 = Product [diff x exponent, (NatLog base), entire]
+        part2 = Product [exponent, diff x (NatLog base), entire]
 
 -- Distributive over addition (Linear operator)
 diff x (Sum xs _) = Sum (map (diff x) xs) 0
+
+diff x (NatLog y) = Product [diff x y, Exponentation y (Sum [] (-1))]
 
 -- Product rule
 diff z (Product xs) = Product [Sum (map term [0..(length xs - 1)]) 0]
@@ -70,6 +87,8 @@ diff z (Product xs) = Product [Sum (map term [0..(length xs - 1)]) 0]
 pretty :: Sym a -> String
 
 pretty (Var x) = [x]
+
+pretty (NatLog x) = "ln(" ++ (pretty x) ++ ")"
 
 pretty (Sum xs x)
   | m == [] && x == 0 = ""
@@ -81,3 +100,22 @@ pretty (Sum xs x)
 pretty (Exponentation x y) = "(" ++ (pretty x) ++ ") ^ (" ++ (pretty y) ++ ")"
 
 pretty (Product xs) = "(" ++ (concat $ intersperse ")(" (map pretty xs)) ++ ")"
+
+main = do
+  print $ pretty $ simplify $ diff 'x' 
+    $ Exponentation (Var 'x') (Sum [] 2)
+
+  print $ pretty $ simplify $ diff 'x' 
+    $ NatLog (Var 'x')
+
+  print $ pretty $ simplify $ diff 'x' 
+    $ Exponentation (Var 'x') (Var 'x')
+
+  print $ pretty $ simplify $ diff 'x' 
+    $ NatLog (Exponentation (Var 'x') (Sum [] 2))
+
+  print $ pretty $ simplify $ diff 'x' 
+    $ Product [
+      Exponentation (Var 'x') (Sum [] 2),
+      Exponentation (Sum [Var 'x'] 2) (Sum [] 5)
+      ]
