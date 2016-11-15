@@ -1,12 +1,12 @@
 solutions :: [[Int]]
-solutions = getSolutions 8 [[]]
+solutions = getSolutions 8 8 [[]]
   
-getSolutions :: Int -> [[Int]] -> [[Int]]
-getSolutions 0 = id
-getSolutions n = getSolutions (n-1) . filter invalid . concat . map addRow
+getSolutions :: Int -> Int -> [[Int]] -> [[Int]]
+getSolutions 0 m = id
+getSolutions n m = getSolutions (n-1) m . filter invalid . concat . map (addRow m)
 
-addRow :: [Int] -> [[Int]]
-addRow solution = map (\x -> solution ++ [x]) . filter (`notElem` solution) $ [0..7]
+addRow :: Int -> [Int] -> [[Int]]
+addRow m solution = map (\x -> solution ++ [x]) . filter (`notElem` solution) $ [0..(m-1)]
 
 invalid :: [Int] -> Bool
 invalid solution = not $ any (containsInvalid solution) [0..((length solution) - 1)]
