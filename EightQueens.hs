@@ -1,18 +1,14 @@
-solutions :: [[Int]]
-solutions = getSolutions 8 8 [[]]
-  
-getSolutions :: Int -> Int -> [[Int]] -> [[Int]]
-getSolutions 0 m = id
-getSolutions n m = getSolutions (n-1) m . filter invalid . concat . map (addRow m)
+import Control.Monad (guard)
+import Data.List ((\\))
 
-addRow :: Int -> [Int] -> [[Int]]
-addRow m solution = map (\x -> solution ++ [x]) . filter (`notElem` solution) $ [0..(m-1)]
+getSolutions 0 _ = return []
+getSolutions n m = do
+  sol <- getSolutions (n - 1) m
+  el <- [0..(m - 1)] \\ sol
+  guard $ not (or (zipWith (diagonalThreaten el) sol [1..]))
+  return $ el:sol
 
-invalid :: [Int] -> Bool
-invalid solution = not $ any (containsInvalid solution) [0..((length solution) - 1)]
+diagonalThreaten val1 val2 diff =
+  val1 + diff == val2 || val1 - diff == val2
 
-containsInvalid :: [Int] -> Int -> Bool
-containsInvalid solution n = any (diagonalThreaten solution n) [1..((length solution - 1) - n)]
-
-diagonalThreaten :: [Int] -> Int -> Int -> Bool
-diagonalThreaten solution n x = (solution !! n) + x == (solution !! (n+x)) || (solution !! n) -x == (solution !! (n+x))
+solutions = getSolutions 8 8
